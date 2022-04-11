@@ -7,6 +7,7 @@
 #include "proc.h"
 #include "elf.h"
 
+
 extern char data[];  // defined by kernel.ld
 pde_t *kpgdir;  // for use in scheduler()
 
@@ -389,6 +390,71 @@ copyout(pde_t *pgdir, uint va, void *p, uint len)
     buf += n;
     va = va0 + PGSIZE;
   }
+  return 0;
+}
+
+//Change protection bit to read only
+int
+mprotect(void *addr, int len){
+  //current process
+  struct proc* currentProc = myproc();
+  //page table of current process
+  pde_t* pageTable;
+  //pointer
+  int pointer;
+
+  //pointer starts from the given address
+  //pointer has to be in range of len*page size + address
+  //increment of pointer is page size to go to next page
+  for( pointer=(int)addr; pointer<len*PGSIZE+(int)addr; pointer+=PGSIZE){
+    pageTable = walkpgdir(currentProc->pgdir, (void*) pointer, 0);
+
+    //if page table does not exist then return -1
+    if(pageTable == 0){
+      return -1;
+    }
+
+    //if page table does exist negate its PTE_W 
+    else{
+      *pageTable = *pageTable & ~PTE_W;
+    }
+    
+  }
+  //notice hardware the change have been made
+  lcr3(V2P(currentProc->pgdir));
+  return 0;
+}
+
+//Change protection bit to read and write
+int
+munprotect(void *addr, int len){
+  //current process
+  struct proc* currentProc = myproc();
+  //page table of current process
+  pde_t* pageTable;
+  //pointer
+  int pointer;
+
+
+  //pointer starts from the given address
+  //pointer has to be in range of len*page size + address
+  //increment of pointer is page size to go to next page
+  for( pointer=(int)addr; pointer<len*PGSIZE+(int)addr; pointer+=PGSIZE){
+    pageTable = walkpgdir(currentProc->pgdir, (void*) pointer, 0);
+
+    //if page table does not exist then return -1
+     if(pageTable == 0){
+      return -1;
+    }
+
+    //if page table does exist change its PTE_W back to 1
+    else{
+      *pageTable = *pageTable | PTE_W;
+    }
+    
+  }
+  //notice hardware the change have been made
+  lcr3(V2P(currentProc->pgdir));
   return 0;
 }
 

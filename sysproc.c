@@ -89,3 +89,53 @@ sys_uptime(void)
   release(&tickslock);
   return xticks;
 }
+
+//change protection bit to read-only
+int
+sys_mprotect(void)
+{
+  void *addr;
+  int len;
+
+  //if addr points to a region that is not currently a part of the address space
+  if(argptr(0,(char**)&addr,sizeof(void*))<0 || argint(1,&len)<0){
+    return -1;
+  }
+
+  //if page is not aligned
+  if((uint)addr % PGSIZE != 0){
+    return -1;
+  }
+
+  //if length is less or equal to zero
+  if(len<=0){
+    return -1;
+  }
+
+  return mprotect(addr, len);
+}
+
+//change protection bit to read-and-write
+int
+sys_munprotect(void)
+{
+  void* addr;
+  int len;
+
+  //if addr points to a region that is not currently a part of the address space
+  if(argptr(0,(char**)&addr,sizeof(void*))<0  || argint(1,&len)<0){
+    return -1;
+  }
+
+  //if page is not aligned
+  if((uint)addr % PGSIZE != 0){
+    return -1;
+  }
+
+  //if length is less or equal to zero
+  if(len<=0){
+    return -1;
+  }
+  
+  return munprotect(addr, len);
+}
